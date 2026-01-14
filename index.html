@@ -132,14 +132,33 @@
             { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3", id: "KG-01" },
             { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3", id: "TN-02" },
             { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3", id: "KL-03" },
-            { title: "Dark Place", artist: "O4ue", file: "Lost in a Dark Place(MP3_160K)_1.mp3", id: "JW-04" },
-            { title: "Adore You", artist: "Bryant Barnes", file: "Adore You(MP3_160K).mp3", id: "HS-05" }
+            { title: "Dark Place", artist: "O4ue", file: "Lost in a Dark Place(MP3_160K)_1.mp3", id: "OE-04" },
+            { title: "Adore You", artist: "Bryant Barnes", file: "Adore You(MP3_160K).mp3", id: "BB-05" }
         ];
+
+        // Raw base to serve audio files from this repo/commit. If you host differently, change this.
+        const rawBase = 'https://raw.githubusercontent.com/STKGAMER2007/MP4-Player/ccb13375bff62b9538a53702d332cf14a525a180/';
 
         let index = 0;
         let isPlaying = false;
         let audio = new Audio();
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous';
         let aCtx, analyser, source;
+
+        // error / status handlers to help debugging
+        audio.addEventListener('error', (e) => {
+            console.error('Audio failed to load/play:', audio.src, e);
+            document.getElementById('log-msg').innerText = 'LOAD_ERROR';
+        });
+        audio.addEventListener('canplay', () => {
+            document.getElementById('log-msg').innerText = 'READY';
+        });
+        audio.addEventListener('loadedmetadata', () => {
+            if (!isNaN(audio.duration)) {
+                document.getElementById('log-msg').innerText = `DURATION_${audio.duration.toFixed(1)}s`;
+            }
+        });
 
         function typeWriter(text) {
             let i = 0;
@@ -155,19 +174,51 @@
         function load(idx) {
             index = idx;
             const s = playlist[index];
-            audio.src = s.file;
+
+            // pause and clear previous source while switching
+            audio.pause();
+
+            // Use raw.githubusercontent URL so it can be fetched from the repo.
+            // Make sure that file names match exactly and are present in the repository root.
+            audio.src = rawBase + encodeURIComponent(s.file);
+            audio.load();
+
             document.getElementById('song-id').innerText = s.id;
             document.getElementById('artist').innerText = s.artist.toUpperCase();
             document.getElementById('cur-track-name').innerText = s.title;
             typeWriter(s.title.toUpperCase());
             document.getElementById('log-msg').innerText = `LOADING_FILE_${s.id}...`;
-            if(isPlaying) audio.play();
+
+            // if the player was already playing, attempt to resume playback
+            if (isPlaying) {
+                // play() returns a promise; catch rejections (autoplay prevention)
+                audio.play().catch(err => {
+                    console.error('play() rejected', err);
+                    document.getElementById('log-msg').innerText = 'PLAY_BLOCKED';
+                });
+            }
         }
 
         function toggle() {
+            // create/resume AudioContext on user gesture
             if(!aCtx) initAudio();
-            if(isPlaying) { audio.pause(); } else { audio.play(); }
-            isPlaying = !isPlaying;
+            if (aCtx && aCtx.state === 'suspended') {
+                aCtx.resume().catch(e => console.warn('aCtx.resume() failed', e));
+            }
+
+            if(isPlaying) {
+                audio.pause();
+                isPlaying = false;
+            } else {
+                audio.play().then(() => {
+                    isPlaying = true;
+                }).catch(err => {
+                    console.error('play() rejected', err);
+                    document.getElementById('log-msg').innerText = 'PLAY_BLOCKED';
+                    isPlaying = false;
+                });
+            }
+
             document.getElementById('play-btn').innerHTML = isPlaying ? '<i data-lucide="pause"></i>' : '<i data-lucide="play"></i>';
             lucide.createIcons();
         }
@@ -202,7 +253,7 @@
                     const x2 = centerX + Math.cos(angle) * (radius + barHeight);
                     const y2 = centerY + Math.sin(angle) * (radius + barHeight);
 
-                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon');
+                    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon') || '#00f2ff';
                     ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
                 }
@@ -212,7 +263,7 @@
 
         // --- OVERDRIVE LOGIC ---
         document.getElementById('volume').oninput = (e) => {
-            const val = e.target.value;
+            const val = parseFloat(e.target.value);
             audio.volume = val;
             const frame = document.getElementById('main-frame');
             if(val >= 0.95) {
@@ -225,7 +276,11 @@
         };
 
         audio.ontimeupdate = () => {
-            document.getElementById('progress').style.width = (audio.currentTime/audio.duration)*100 + "%";
+            if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+                document.getElementById('progress').style.width = (audio.currentTime/audio.duration)*100 + "%";
+            } else {
+                document.getElementById('progress').style.width = '0%';
+            }
         };
 
         function next() { load((index + 1) % playlist.length); }
