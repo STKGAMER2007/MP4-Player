@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // V7_BIOLINK</title>
+    <style>
+        :root {
+            --bio-color: #00ff88;
+            --membrane: #0a0a0a;
+            --vein: rgba(0, 255, 136, 0.1);
+        }
+
+        body {
+            margin: 0; background: #000; color: white;
+            font-family: 'Space Mono', monospace; height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- BACKGROUND NEURAL NET --- */
+        #neural-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; opacity: 0.4;
+        }
+
+        /* --- THE ORGANISM (CONTAINER) --- */
+        .bio-shell {
+            position: relative; z-index: 10;
+            width: 700px; height: 700px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- LIQUID CORE ENGINE (GOOEY EFFECT) --- */
+        .gooey-filter {
+            filter: url('#goo'); /* SVG Filter link */
+            position: absolute; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .blob-core {
+            width: 200px; height: 200px; background: var(--bio-color);
+            border-radius: 50%; position: absolute;
+            animation: breathe 4s ease-in-out infinite;
+            box-shadow: 0 0 40px var(--bio-color);
+        }
+
+        .sat-blob {
+            width: 60px; height: 60px; background: var(--bio-color);
+            border-radius: 50%; position: absolute;
+            transition: transform 0.1s linear;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+        }
+
+        /* --- HUD OVERLAY --- */
+        .membrane-hud {
+            position: absolute; z-index: 20; text-align: center;
+            pointer-events: none; /* Let clicks pass through to controls */
+        }
+
+        .track-title {
+            font-family: 'Syncopate', sans-serif; font-weight: 700;
+            font-size: 2rem; color: white; text-shadow: 0 0 20px var(--bio-color);
+            mix-blend-mode: difference;
+        }
+
+        /* --- CONTROLS (FLOATING NERVES) --- */
+        .nerve-dock {
+            position: absolute; bottom: 50px; 
+            display: flex; gap: 40px; z-index: 30;
+            background: rgba(0,0,0,0.6); padding: 15px 40px;
+            border-radius: 50px; border: 1px solid var(--bio-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .bio-btn {
+            background: none; border: none; color: var(--bio-color);
+            font-size: 1.5rem; cursor: pointer; transition: 0.2s;
+        }
+        .bio-btn:hover { transform: scale(1.3); text-shadow: 0 0 15px var(--bio-color); }
+
+        .settings-nerve {
+            position: absolute; top: 30px; right: 30px; z-index: 40;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        /* --- SVG FILTER (HIDDEN) --- */
+        svg { display: none; }
+    </style>
+</head>
+<body>
+
+    <svg>
+        <defs>
+            <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9" result="goo" />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+            </filter>
+        </defs>
+    </svg>
+
+    <canvas id="neural-canvas"></canvas>
+
+    <div class="bio-shell">
+        <div class="gooey-filter" id="goo-layer">
+            <div class="blob-core" id="main-blob"></div>
+            </div>
+
+        <div class="membrane-hud">
+            <div style="font-size: 10px; letter-spacing: 5px; margin-bottom: 10px;">ORGANIC_LINK_ESTABLISHED</div>
+            <div class="track-title" id="title-text">SYSTEM_READY</div>
+            <div id="artist-text" style="font-size: 12px; margin-top: 5px; opacity: 0.8;">WAITING_FOR_INPUT</div>
+        </div>
+
+        <div class="nerve-dock">
+            <button class="bio-btn" onclick="prev()">⏮</button>
+            <button class="bio-btn" id="play-btn" onclick="toggle()">⏵</button>
+            <button class="bio-btn" onclick="next()">⏭</button>
+        </div>
+    </div>
+
+    <div class="settings-nerve">
+        <button class="bio-btn" onclick="toggleVoice()" title="Toggle AI Voice" style="font-size: 1rem;">🗣️</button>
+        <label class="bio-btn" title="Inject DNA (Upload)" style="font-size: 1rem; cursor: pointer;">
+            💉 <input type="file" id="upload" hidden accept="audio/*">
+        </label>
+        <input type="color" id="bio-color-picker" value="#00ff88" style="opacity:0; width:30px; height:30px; position:absolute; top:60px;">
+        <button class="bio-btn" onclick="document.getElementById('bio-color-picker').click()" title="Mutate Color" style="font-size: 1rem;">🧬</button>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const playlist = [
+            { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3" },
+            { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3" },
+            { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3" },
+            { title: "All Life Long", artist: "Juice WRLD", file: "All Life Long(MP3_160K).mp3" },
+            { title: "Losing Someone", artist: "Official", file: "this is what losing someone feels like (official video)(MP3_160K).mp3" }
+        ];
+
+        let index = 0, isPlaying = false, audio = new Audio();
+        let aCtx, analyser, source;
+        let voiceEnabled = true;
+
+        // --- LIQUID BLOB GENERATION ---
+        const gooLayer = document.getElementById('goo-layer');
+        let blobs = [];
+
+        // Create 8 satellite blobs
+        for(let i=0; i<8; i++) {
+            let b = document.createElement('div');
+            b.className = 'sat-blob';
+            gooLayer.appendChild(b);
+            blobs.push({ el: b, angle: (i/8)*Math.PI*2, dist: 120 });
+        }
+
+        // --- AUDIO ENGINE ---
+        function initAudio() {
+            aCtx = new AudioContext();
+            analyser = aCtx.createAnalyser();
+            analyser.fftSize = 128;
+            source = aCtx.createMediaElementSource(audio);
+            source.connect(analyser);
+            analyser.connect(aCtx.destination);
+            renderBio();
+        }
+
+        function toggle() {
+            if(!aCtx) initAudio();
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').innerText = isPlaying ? '⏸' : '⏵';
+        }
+
+        // --- AI DJ VOICE ---
+        function speak(text) {
+            if(!voiceEnabled) return;
+            window.speechSynthesis.cancel();
+            let msg = new SpeechSynthesisUtterance(text);
+            msg.rate = 1.1; 
+            msg.pitch = 0.8; // Robotic Deep
+            msg.volume = 0.6;
+            // Try to find a good sci-fi voice
+            let voices = window.speechSynthesis.getVoices();
+            let sciFiVoice = voices.find(v => v.name.includes('Google US English')) || voices[0];
+            msg.voice = sciFiVoice;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            alert(`AI VOICE: ${voiceEnabled ? 'ONLINE' : 'OFFLINE'}`);
+        }
+
+        // --- VISUALIZER LOOP ---
+        function renderBio() {
+            const canvas = document.getElementById('neural-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                analyser.getByteFrequencyData(data);
+                
+                let bass = data[2] || 0;
+                let mid = data[10] || 0;
+                let avg = data.reduce((a,b)=>a+b)/data.length;
+
+                // 1. LIQUID BLOB DYNAMICS
+                // Main core pulses with average volume
+                const coreScale = 1 + (bass / 300);
+                document.getElementById('main-blob').style.transform = `scale(${coreScale})`;
+
+                // Satellites orbit and detach based on frequency
+                blobs.forEach((b, i) => {
+                    // They spin
+                    b.angle += 0.02 + (avg/5000); 
+                    // They move outward on beat
+                    let currentDist = b.dist + (data[i*4] || 0) * 0.8;
+                    
+                    let x = Math.cos(b.angle) * currentDist;
+                    let y = Math.sin(b.angle) * currentDist;
+                    
+                    b.el.style.transform = `translate(${x}px, ${y}px)`;
+                });
+
+                // 2. NEURAL BACKGROUND
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--vein');
+                ctx.lineWidth = 1;
+
+                // Draw simple connecting web
+                ctx.beginPath();
+                for(let i=0; i<data.length; i+=5) {
+                    if(data[i] > 100) { // Only active neurons
+                        let x = (i / data.length) * canvas.width * 2; // Spread out
+                        let y = canvas.height/2 + (Math.sin(i + Date.now()/1000) * 200);
+                        
+                        ctx.moveTo(canvas.width/2, canvas.height/2); // Connect to center
+                        ctx.lineTo(x, y);
+                        
+                        ctx.arc(x, y, 2, 0, Math.PI*2);
+                    }
+                }
+                ctx.stroke();
+            }
+            animate();
+        }
+
+        // --- SYSTEM CONTROLS ---
+        function load(i) {
+            index = i;
+            let s = playlist[index];
+            audio.src = s.file;
+            document.getElementById('title-text').innerText = s.title;
+            document.getElementById('artist-text').innerText = s.artist;
+            
+            // Trigger AI Voice
+            speak(`Now initializing: ${s.title}`);
+
+            if(isPlaying) audio.play();
+        }
+
+        document.getElementById('upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const url = URL.createObjectURL(file);
+                playlist.push({ title: file.name.substring(0,15), artist: "Mutant_File", file: url });
+                speak("New DNA sequence ingested.");
+                load(playlist.length-1);
+            }
+        };
+
+        document.getElementById('bio-color-picker').oninput = (e) => {
+            document.documentElement.style.setProperty('--bio-color', e.target.value);
+            document.documentElement.style.setProperty('--vein', e.target.value + '22'); // Add transparency
+        };
+
+        function next() { load((index + 1) % playlist.length); }
+        function prev() { load((index - 1 + playlist.length) % playlist.length); }
+
+        load(0);
+    </script>
+</body>
+</html>

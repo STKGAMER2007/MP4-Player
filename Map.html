@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // THE COMPLETE LINEAGE</title>
+    <style>
+        body {
+            margin: 0; background: #000; color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- BACKGROUND VIBE --- */
+        .scanline {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3) 51%);
+            background-size: 100% 4px; z-index: 10; pointer-events: none;
+        }
+
+        header {
+            padding: 80px 20px; text-align: center; position: relative;
+        }
+
+        h1 {
+            font-family: 'Syncopate', sans-serif; font-size: clamp(1.5rem, 6vw, 3rem);
+            letter-spacing: 15px; margin: 0; opacity: 0.9;
+        }
+
+        .origin-stamp {
+            font-size: 10px; letter-spacing: 5px; color: #666; margin-top: 15px;
+        }
+
+        /* --- THE LINEAGE TRACK --- */
+        .timeline {
+            position: relative; max-width: 800px; width: 90%;
+            padding: 50px 0 150px 0;
+        }
+
+        .timeline::before {
+            content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+            width: 1px; background: linear-gradient(to bottom, #333, #fff, #ffaa00);
+            opacity: 0.3; transform: translateX(-50%);
+        }
+
+        .node {
+            display: flex; justify-content: space-between; align-items: center;
+            margin: 40px 0; text-decoration: none; color: inherit;
+            position: relative; transition: 0.4s;
+        }
+
+        .node:hover { transform: scale(1.02); }
+
+        .v-box {
+            width: 45%; padding: 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        .node:nth-child(even) { flex-direction: row-reverse; text-align: right; }
+
+        .v-num {
+            font-family: 'Syncopate', sans-serif; font-size: 1.2rem;
+            color: var(--v-color); margin-bottom: 10px;
+        }
+
+        .v-desc { font-size: 11px; opacity: 0.6; line-height: 1.5; }
+
+        /* --- VERSION SPECIFIC COLORS --- */
+        .v4-node { --v-color: #888; }
+        .v5-node { --v-color: #aaa; }
+        .v6-node { --v-color: #00f2ff; }
+        .v7-node { --v-color: #00ff88; }
+        .v8-node { --v-color: #ff003c; }
+        .v9-node { --v-color: #fff; }
+        .v10-node { --v-color: #ffaa00; border: 1px solid #ffaa00 !important; }
+
+        .marker {
+            width: 12px; height: 12px; background: #000;
+            border: 2px solid #fff; border-radius: 50%;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            z-index: 5;
+        }
+
+        footer {
+            padding: 40px; font-size: 9px; opacity: 0.3; letter-spacing: 2px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanline"></div>
+
+    <header>
+        <div class="origin-stamp">MEMORY_LOG // EST. V4</div>
+        <h1>NEO-LINEAGE</h1>
+        <div class="origin-stamp">FROM THE MACHINE TO THE SOUL</div>
+    </header>
+
+    <div class="timeline">
+        
+        <a href="v4.html" class="node v4-node">
+            <div class="v-box">
+                <div class="v-num">V4_CORE</div>
+                <div class="v-desc">Where we started. The original industrial machine. Steel, glass, and raw functionality.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v5.html" class="node v5-node">
+            <div class="v-box">
+                <div class="v-num">V5_INDUSTRIAL</div>
+                <div class="v-desc">Refinement of the core. Enhanced physics and the introduction of the modern UI grid.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v6.html" class="node v6-node">
+            <div class="v-box">
+                <div class="v-num">V6_AETHER</div>
+                <div class="v-desc">The holographic shift. Particle fields and spatial 3D orbit audio.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v7.html" class="node v7-node">
+            <div class="v-box">
+                <div class="v-num">V7_BIOLINK</div>
+                <div class="v-desc">Biological fusion. The "Living Organism" with liquid metaball DNA.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v8.html" class="node v8-node">
+            <div class="v-box">
+                <div class="v-num">V8_HORIZON</div>
+                <div class="v-desc">Quantum transition. Dimensional warping and the Chrono-Sphere.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v9.html" class="node v9-node">
+            <div class="v-box">
+                <div class="v-num">V9_AURA</div>
+                <div class="v-desc">Invisible architecture. Music expressed through light and aura bleed.</div>
+            </div>
+            <div class="marker"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+        <a href="v10.html" class="node v10-node">
+            <div class="v-box" style="background: rgba(255,170,0,0.05);">
+                <div class="v-num">V10_OMNI</div>
+                <div class="v-desc">The Singularity. Infinite 3D depth, Neural Soul, and absolute cross-platform unity.</div>
+            </div>
+            <div class="marker" style="border-color: #ffaa00; background: #ffaa00;"></div>
+            <div style="width: 45%;"></div>
+        </a>
+
+    </div>
+
+    <footer>
+        LOGGED IN 2026 // SYSTEM STABLE // END OF EVOLUTION
+    </footer>
+
+</body>
+</html>

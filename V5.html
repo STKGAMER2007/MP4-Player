@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // ARCHITECT_V5</title>
+    <style>
+
+        :root {
+            --neon: #00f2ff;
+            --accent: #ff007b;
+            --bg: #030303;
+            --glass: rgba(20, 20, 20, 0.85);
+        }
+
+        body {
+            margin: 0; background: var(--bg); color: white;
+            font-family: 'Orbitron', sans-serif; height: 100vh;
+            display: grid; grid-template-columns: 320px 1fr;
+            overflow: hidden; cursor: none; /* Custom cursor via Reticle */
+        }
+
+        /* --- LEFT PANEL: DATABASE --- */
+        .sys-panel {
+            background: var(--glass); border-right: 2px solid var(--neon);
+            backdrop-filter: blur(15px); padding: 20px;
+            display: flex; flex-direction: column; gap: 15px; z-index: 20;
+            box-shadow: 10px 0 50px rgba(0,0,0,0.5);
+        }
+
+        .panel-header {
+            font-size: 14px; letter-spacing: 2px; color: var(--accent);
+            border-bottom: 1px solid var(--accent); padding-bottom: 10px;
+            margin-bottom: 10px; font-weight: 900;
+        }
+
+        /* UPLOAD ZONE */
+        .ingest-zone {
+            border: 2px dashed var(--neon); border-radius: 8px;
+            padding: 25px; text-align: center; cursor: pointer;
+            transition: 0.3s; position: relative; overflow: hidden;
+        }
+        .ingest-zone:hover { background: rgba(0, 242, 255, 0.15); box-shadow: 0 0 20px var(--neon); }
+        .ingest-zone span { position: relative; z-index: 2; font-size: 10px; letter-spacing: 1px; }
+
+        /* PLAYLIST */
+        .db-list { 
+            flex: 1; overflow-y: auto; font-family: 'JetBrains Mono'; 
+            padding-right: 5px; margin-top: 10px;
+        }
+        .db-list::-webkit-scrollbar { width: 4px; }
+        .db-list::-webkit-scrollbar-thumb { background: var(--neon); }
+
+        .track-node {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; margin-bottom: 5px; font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+            transition: all 0.2s;
+        }
+        .track-node:hover { border-color: var(--neon); background: rgba(0, 242, 255, 0.05); }
+        .track-node.active { background: var(--neon); color: black; font-weight: bold; }
+        
+        .del-btn {
+            background: none; border: none; color: inherit; 
+            font-weight: bold; cursor: pointer; padding: 0 5px;
+        }
+        .del-btn:hover { color: var(--accent); }
+
+        /* --- RIGHT PANEL: CORE & VISUALS --- */
+        .main-stage {
+            position: relative; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+
+        /* CANVAS LAYERS */
+        #viz-canvas { position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; pointer-events: none; }
+        
+        /* TARGETING RETICLE */
+        #reticle {
+            position: absolute; width: 60px; height: 60px;
+            border: 1px solid var(--neon); border-radius: 50%;
+            pointer-events: none; transform: translate(-50%, -50%);
+            z-index: 100; transition: width 0.1s, height 0.1s;
+            box-shadow: 0 0 20px var(--neon);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #reticle::after { content: ''; width: 4px; height: 4px; background: var(--neon); }
+        body:active #reticle { width: 40px; height: 40px; border-color: var(--accent); }
+
+        /* REACTOR HEXAGON */
+        .reactor {
+            width: 250px; height: 250px; position: relative;
+            background: rgba(0,0,0,0.9); border: 2px solid var(--neon);
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 10; box-shadow: 0 0 60px var(--neon);
+            transition: transform 0.1s;
+        }
+
+        /* SETTINGS & CONTROLS */
+        .protocol-dock {
+            position: absolute; top: 30px; right: 30px;
+            display: flex; gap: 10px; align-items: center;
+            z-index: 50;
+        }
+        select {
+            background: black; color: var(--neon); border: 1px solid var(--neon);
+            padding: 8px; font-family: 'Orbitron'; font-size: 10px; cursor: pointer;
+        }
+
+        .control-deck {
+            position: absolute; bottom: 40px; width: 700px;
+            background: rgba(10,10,10,0.9); border: 1px solid var(--neon);
+            border-radius: 10px 10px 0 0; border-bottom: none;
+            padding: 20px 40px; display: flex; align-items: center; gap: 30px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+            clip-path: polygon(10% 0, 90% 0, 100% 100%, 0% 100%);
+        }
+
+        .btn-v5 { background: none; border: 1px solid var(--neon); color: white; padding: 10px; border-radius: 4px; cursor: pointer; }
+        .btn-v5:hover { background: var(--neon); color: black; }
+
+        .vol-rail { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+        input[type="range"] { accent-color: var(--neon); width: 100px; }
+
+        /* ANIMATIONS */
+        .overdrive-shake { animation: shake 0.1s infinite; --neon: var(--accent) !important; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 100% { transform: translate(-1px, -1px); } }
+
+    </style>
+</head>
+<body>
+
+    <div id="reticle"></div>
+
+    <div class="sys-panel">
+        <div class="panel-header">/// SYSTEM_ARCHITECT_V5</div>
+        
+        <div class="ingest-zone" onclick="document.getElementById('file-upload').click()">
+            <span>📥 INITIALIZE_UPLOAD</span>
+            <input type="file" id="file-upload" hidden accept="audio/*">
+        </div>
+
+        <div class="db-list" id="playlist-container"></div>
+
+        <div style="margin-top: auto; font-size: 10px; opacity: 0.7; font-family: 'JetBrains Mono';">
+            <div>STATUS: <span id="status-log" style="color: var(--neon);">ONLINE</span></div>
+            <div>PROTOCOL: <span id="proto-display">STANDARD</span></div>
+        </div>
+    </div>
+
+    <div class="main-stage" id="main-ui">
+        <canvas id="viz-canvas"></canvas>
+
+        <div class="protocol-dock">
+            <span style="font-size: 10px;">OUTPUT_PROTOCOL:</span>
+            <select id="genre-select" onchange="changeProtocol()">
+                <option value="1.0">STANDARD_MODE</option>
+                <option value="1.4">BASS_BOOST (HEAVY)</option>
+                <option value="0.8">LOFI_CHILL (SOFT)</option>
+                <option value="1.2">VOCAL_ENHANCE</option>
+                <option value="1.8">MAX_OVERDRIVE (⚠️)</option>
+            </select>
+        </div>
+
+        <div class="reactor" id="reactor-core">
+            <div id="emoji-core" style="font-size: 4rem;">💠</div>
+            <div id="track-id" style="font-size: 10px; margin-top: 10px; color: var(--neon); letter-spacing: 2px;">IDLE</div>
+        </div>
+
+        <div class="control-deck">
+            <button class="btn-v5" onclick="prev()">⏮️</button>
+            <button class="btn-v5" id="play-btn" onclick="toggle()">▶️</button>
+            <button class="btn-v5" onclick="next()">⏭️</button>
+
+            <div style="flex: 1;">
+                <div id="track-title" style="font-size: 12px; margin-bottom: 5px; font-family: 'JetBrains Mono'; color: var(--neon);">AWAITING_INPUT...</div>
+                <input type="range" id="scrubber" value="0" style="width: 100%;" step="0.1">
+            </div>
+
+            <div class="vol-rail">
+                <span>🔈</span>
+                <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- INITIAL DATABASE ---
+        let db = [
+            { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3" },
+            { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3" },
+            { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3" },
+            { title: "Dark Place", artist: "Juice WRLD", file: "Lost in a Dark Place(MP3_160K)_1.mp3" },
+            { title: "Adore You", artist: "Harry Styles", file: "Adore You(MP3_160K).mp3" },
+            { title: "All Life Long", artist: "Juice WRLD", file: "All Life Long(MP3_160K).mp3" },
+            { title: "Losing Someone", artist: "Official", file: "this is what losing someone feels like (official video)(MP3_160K).mp3" }
+        ];
+
+        let index = 0;
+        let audio = new Audio();
+        let isPlaying = false;
+        let aCtx, analyser, gainNode, source;
+        let protocolMultiplier = 1.0; // The Genre Gain Factor
+
+        // --- MOUSE RETICLE LOGIC ---
+        document.addEventListener('mousemove', (e) => {
+            const r = document.getElementById('reticle');
+            r.style.left = e.clientX + 'px';
+            r.style.top = e.clientY + 'px';
+        });
+
+        // --- UPLOAD INGESTION LOGIC ---
+        document.getElementById('file-upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const url = URL.createObjectURL(file);
+                db.push({
+                    title: file.name.replace(/\.[^/.]+$/, "").substring(0, 25),
+                    artist: "IMPORTED_FILE",
+                    file: url
+                });
+                renderList();
+                document.getElementById('status-log').innerText = "PACKET_RECEIVED";
+                setTimeout(() => document.getElementById('status-log').innerText = "ONLINE", 2000);
+            }
+        };
+
+        function deleteTrack(i) {
+            event.stopPropagation();
+            if(confirm("CONFIRM_DELETION: " + db[i].title + "?")) {
+                db.splice(i, 1);
+                if(index >= db.length) index = 0;
+                renderList();
+            }
+        }
+
+        // --- RENDER PLAYLIST ---
+        function renderList() {
+            const list = document.getElementById('playlist-container');
+            list.innerHTML = '';
+            db.forEach((t, i) => {
+                const item = document.createElement('div');
+                item.className = `track-node ${i === index ? 'active' : ''}`;
+                item.innerHTML = `
+                    <span>> [${i}] ${t.title}</span>
+                    <button class="del-btn" onclick="deleteTrack(${i})">X</button>
+                `;
+                item.onclick = () => load(i);
+                list.appendChild(item);
+            });
+        }
+
+        // --- AUDIO ENGINE ---
+        function changeProtocol() {
+            const select = document.getElementById('genre-select');
+            protocolMultiplier = parseFloat(select.value);
+            document.getElementById('proto-display').innerText = select.options[select.selectedIndex].text;
+            if(gainNode) gainNode.gain.value = document.getElementById('volume').value * protocolMultiplier;
+            
+            // Visual feedback for Heavy Mode
+            const core = document.getElementById('emoji-core');
+            if(protocolMultiplier > 1.2) core.innerText = "🔥";
+            else if (protocolMultiplier < 1.0) core.innerText = "🍃";
+            else core.innerText = "💠";
+        }
+
+        function load(i) {
+            index = i;
+            audio.src = db[index].file;
+            document.getElementById('track-title').innerText = db[index].title.toUpperCase();
+            document.getElementById('track-id').innerText = `ID_${Math.floor(Math.random()*9999)}`;
+            renderList();
+            if(isPlaying) audio.play();
+        }
+
+        function toggle() {
+            if(!aCtx) initSystem();
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').innerText = isPlaying ? '⏸️' : '▶️';
+        }
+
+        function initSystem() {
+            aCtx = new AudioContext();
+            analyser = aCtx.createAnalyser();
+            gainNode = aCtx.createGain(); // Added Gain Node for Protocol Control
+
+            source = aCtx.createMediaElementSource(audio);
+            source.connect(gainNode);
+            gainNode.connect(analyser);
+            analyser.connect(aCtx.destination);
+            
+            analyser.fftSize = 128;
+            changeProtocol(); // Apply current settings
+            drawViz();
+        }
+
+        function drawViz() {
+            const canvas = document.getElementById('viz-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight * 0.6;
+            const data = new Uint8Array(analyser.frequencyBinCount);
+
+            function loop() {
+                requestAnimationFrame(loop);
+                analyser.getByteFrequencyData(data);
+                ctx.clearRect(0,0,canvas.width, canvas.height);
+
+                const barWidth = (canvas.width / data.length) * 1.5;
+                let x = 0;
+
+                data.forEach(val => {
+                    const barHeight = val * 2;
+                    // Neon Laser Color Logic
+                    ctx.fillStyle = `rgba(0, 242, 255, ${val/255})`;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = "rgba(0, 242, 255, 0.5)";
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 2;
+                });
+
+                // Reactor Pulse
+                const avg = data.reduce((a,b)=>a+b,0)/data.length;
+                document.getElementById('reactor-core').style.transform = `scale(${1 + avg/300})`;
+            }
+            loop();
+        }
+
+        // --- CONTROLS ---
+        document.getElementById('volume').oninput = (e) => {
+            if(gainNode) gainNode.gain.value = e.target.value * protocolMultiplier;
+            const ui = document.getElementById('main-ui');
+            if(e.target.value > 0.9) ui.classList.add('overdrive-shake');
+            else ui.classList.remove('overdrive-shake');
+        };
+
+        audio.ontimeupdate = () => {
+            const p = (audio.currentTime/audio.duration)*100 || 0;
+            document.getElementById('scrubber').value = p;
+        };
+        
+        document.getElementById('scrubber').oninput = (e) => {
+            audio.currentTime = (e.target.value / 100) * audio.duration;
+        };
+
+        function next() { if(index < db.length-1) load(index+1); else load(0); }
+        function prev() { if(index > 0) load(index-1); else load(db.length-1); }
+
+        renderList();
+    </script>
+</body>
+</html>

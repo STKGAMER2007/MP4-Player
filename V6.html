@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // V6_AETHER</title>
+    <style>
+        :root {
+            --neon: #00f2ff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0; background: #050505; color: white;
+            font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* --- BACKGROUND UNIVERSE --- */
+        #particle-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* --- MAIN HUD INTERFACE --- */
+        .hud-container {
+            position: relative; z-index: 10;
+            width: 800px; height: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border); border-radius: 20px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.02);
+            display: grid; grid-template-rows: 60px 1fr 80px;
+            overflow: hidden; transition: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* Focus Mode State */
+        .hud-container.focus {
+            width: 350px; height: 120px; border-radius: 60px;
+            grid-template-rows: 1fr; padding: 0 20px;
+        }
+        .hud-container.focus .top-bar, .hud-container.focus .viz-area { display: none; }
+        .hud-container.focus .controls { border-top: none; }
+
+        /* --- TOP BAR --- */
+        .top-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 25px; border-bottom: 1px solid var(--border);
+            font-size: 12px; letter-spacing: 2px; color: var(--neon);
+            text-shadow: 0 0 10px var(--neon);
+        }
+
+        /* --- VISUALIZER AREA --- */
+        .viz-area {
+            position: relative; display: flex; justify-content: center; align-items: center;
+        }
+        .album-art-placeholder {
+            width: 200px; height: 200px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent);
+            border: 2px solid var(--neon);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 0 30px var(--neon); animation: pulse 4s infinite ease-in-out;
+        }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        /* --- CONTROLS --- */
+        .controls {
+            border-top: 1px solid var(--border); display: flex; align-items: center;
+            justify-content: space-between; padding: 0 30px;
+        }
+
+        .btn-glass {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer;
+            transition: 0.3s; font-family: 'Orbitron'; font-size: 14px;
+        }
+        .btn-glass:hover { background: var(--neon); color: black; box-shadow: 0 0 15px var(--neon); }
+
+        .scrubber-rail {
+            flex: 1; margin: 0 20px; height: 4px; background: rgba(255,255,255,0.1);
+            border-radius: 2px; cursor: pointer; position: relative; overflow: hidden;
+        }
+        .scrubber-fill { height: 100%; width: 0%; background: var(--neon); box-shadow: 0 0 10px var(--neon); }
+
+        /* --- ORBIT & COLOR SETTINGS --- */
+        .settings-panel {
+            position: absolute; right: 20px; top: 70px; width: 40px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 20;
+        }
+        .setting-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
+            background: rgba(0,0,0,0.5); color: var(--neon); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+            transition: 0.3s;
+        }
+        .setting-btn:hover { border-color: var(--neon); transform: scale(1.1); }
+        .setting-btn.active { background: var(--neon); color: black; box-shadow: 0 0 20px var(--neon); }
+
+        /* Color Picker Input */
+        input[type="color"] {
+            opacity: 0; position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="hud-container" id="hud">
+        <div class="top-bar">
+            <div>SYSTEM_V6 // AETHER</div>
+            <div id="clock">00:00:00</div>
+        </div>
+
+        <div class="viz-area">
+            <div class="album-art-placeholder" id="core">
+                <div id="emoji-art" style="font-size: 4rem;">💠</div>
+                <div id="meta-tag" style="font-size: 10px; margin-top: 10px; opacity: 0.7;">NO_DATA</div>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <button class="setting-btn" onclick="toggleFocus()" title="Focus Mode">👁️</button>
+            <button class="setting-btn" id="orbit-btn" onclick="toggleOrbit()" title="3D Orbit Audio">🪐</button>
+            <div class="setting-btn" title="Chroma Engine">
+                🎨 <input type="color" id="color-picker" value="#00f2ff">
+            </div>
+            <label class="setting-btn" title="Upload Music" style="cursor: pointer;">
+                📂 <input type="file" id="upload" hidden accept="audio/*">
+            </label>
+        </div>
+
+        <div class="controls">
+            <button class="btn-glass" onclick="prev()">⏮</button>
+            <button class="btn-glass" id="play-btn" onclick="toggle()">▶</button>
+            <button class="btn-glass" onclick="next()">⏭</button>
+
+            <div class="scrubber-rail" id="scrubber">
+                <div class="scrubber-fill" id="fill"></div>
+            </div>
+
+            <div style="font-size: 12px; font-family: 'JetBrains Mono'; min-width: 40px;" id="time-display">0:00</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG & STATE ---
+        const playlist = [
+            { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3" },
+            { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3" },
+            { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3" },
+            { title: "Dark Place", artist: "Juice WRLD", file: "Lost in a Dark Place(MP3_160K)_1.mp3" },
+            { title: "Adore You", artist: "Harry Styles", file: "Adore You(MP3_160K).mp3" },
+            { title: "All Life Long", artist: "Juice WRLD", file: "All Life Long(MP3_160K).mp3" },
+            { title: "Losing Someone", artist: "Official", file: "this is what losing someone feels like (official video)(MP3_160K).mp3" }
+        ];
+
+        let index = 0, isPlaying = false, audio = new Audio();
+        let aCtx, analyser, source, panner, orbitInterval;
+        let orbitAngle = 0;
+        let isFocus = false;
+
+        // --- PARTICLE SYSTEM ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function initParticles() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    speedX: (Math.random() - 0.5) * 1,
+                    speedY: (Math.random() - 0.5) * 1,
+                    baseX: Math.random() * canvas.width,
+                    baseY: Math.random() * canvas.height
+                });
+            }
+        }
+
+        // --- AUDIO ENGINE ---
+        function initAudio() {
+            aCtx = new AudioContext();
+            analyser = aCtx.createAnalyser();
+            analyser.fftSize = 256;
+            
+            // Spatial Audio Panner
+            panner = aCtx.createStereoPanner();
+
+            source = aCtx.createMediaElementSource(audio);
+            source.connect(panner).connect(analyser).connect(aCtx.destination);
+            
+            loopViz();
+        }
+
+        function toggle() {
+            if(!aCtx) initAudio();
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').innerText = isPlaying ? '⏸' : '▶';
+        }
+
+        function toggleOrbit() {
+            const btn = document.getElementById('orbit-btn');
+            btn.classList.toggle('active');
+            if(btn.classList.contains('active')) {
+                orbitInterval = setInterval(() => {
+                    orbitAngle += 0.02;
+                    panner.pan.value = Math.sin(orbitAngle); // Smooth Left-Right Pan
+                }, 50);
+            } else {
+                clearInterval(orbitInterval);
+                panner.pan.value = 0;
+            }
+        }
+
+        function toggleFocus() {
+            isFocus = !isFocus;
+            document.getElementById('hud').classList.toggle('focus');
+        }
+
+        // --- VISUALIZER LOOP ---
+        function loopViz() {
+            requestAnimationFrame(loopViz);
+            const freqData = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(freqData);
+            
+            // Average volume for pulse effect
+            let avg = freqData.reduce((a,b)=>a+b)/freqData.length;
+            
+            // 1. Pulse the Core
+            document.getElementById('core').style.transform = `scale(${1 + avg/250})`;
+            document.getElementById('core').style.boxShadow = `0 0 ${avg/2}px var(--neon)`;
+
+            // 2. Animate Particles
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--neon');
+            
+            particles.forEach((p, i) => {
+                // Audio Reactivity: Particles move faster with bass
+                const boost = (avg / 50) + 0.5;
+                p.x += p.speedX * boost;
+                p.y += p.speedY * boost;
+
+                // Wrap around screen
+                if(p.x < 0) p.x = canvas.width;
+                if(p.x > canvas.width) p.x = 0;
+                if(p.y < 0) p.y = canvas.height;
+                if(p.y > canvas.height) p.y = 0;
+
+                // Mouse Interaction (Gravity)
+                if(mouse.x) {
+                    const dx = mouse.x - p.x;
+                    const dy = mouse.y - p.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist < 150) {
+                        p.x -= dx/20;
+                        p.y -= dy/20;
+                    }
+                }
+
+                // Draw
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * (boost/1.5), 0, Math.PI*2);
+                ctx.fill();
+                
+                // Connect lines if close
+                particles.forEach((p2, j) => {
+                    if(i !== j) {
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist < 100) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(0, 242, 255, ${0.1 - dist/1000})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.stroke();
+                        }
+                    }
+                });
+            });
+        }
+
+        // --- SYSTEM CONTROLS ---
+        function load(i) {
+            index = i;
+            audio.src = playlist[index].file;
+            document.getElementById('meta-tag').innerText = playlist[index].title + " // " + playlist[index].artist;
+            if(isPlaying) audio.play();
+        }
+
+        // File Upload
+        document.getElementById('upload').onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const url = URL.createObjectURL(file);
+                playlist.push({ title: file.name.substring(0,15), artist: "Unknown", file: url });
+                load(playlist.length-1);
+            }
+        };
+
+        // Color Picker
+        document.getElementById('color-picker').oninput = (e) => {
+            document.documentElement.style.setProperty('--neon', e.target.value);
+        };
+
+        // Mouse Tracker
+        window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
+        
+        // Progress Bar
+        audio.ontimeupdate = () => {
+            const pct = (audio.currentTime/audio.duration)*100;
+            document.getElementById('fill').style.width = pct + "%";
+            let m = Math.floor(audio.currentTime/60);
+            let s = Math.floor(audio.currentTime%60);
+            document.getElementById('time-display').innerText = `${m}:${s<10?'0'+s:s}`;
+        };
+
+        // Scrubber Click
+        document.getElementById('scrubber').onclick = (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            audio.currentTime = (x / rect.width) * audio.duration;
+        };
+
+        // Navigation
+        function next() { load((index + 1) % playlist.length); }
+        function prev() { load((index - 1 + playlist.length) % playlist.length); }
+
+        // Clock
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        window.onresize = initParticles;
+        initParticles();
+        load(0);
+    </script>
+</body>
+</html>

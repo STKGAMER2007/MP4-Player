@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // V8_HORIZON</title>
+    <style>
+        :root {
+            --glitch-color: #fff;
+            --horizon: #555;
+        }
+
+        body {
+            margin: 0; background: #000; color: white;
+            font-family: 'JetBrains Mono', monospace;
+            height: 100vh; overflow: hidden;
+            perspective: 1000px; /* Enable 3D Depth */
+        }
+
+        /* --- THE SINGULARITY (BACKDROP) --- */
+        #warp-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; filter: contrast(150%) brightness(50%);
+        }
+
+        /* --- THE GHOST CORE --- */
+        .event-horizon-core {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; height: 400px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #specter {
+            width: 200px; height: 200px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+            transition: 0.5s;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent);
+            box-shadow: 0 0 100px rgba(255,255,255,0.05);
+        }
+
+        /* --- FLOATING INTERFACE --- */
+        .hud-shards {
+            position: relative; z-index: 100;
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: none;
+        }
+
+        .track-shard {
+            font-family: 'Syncopate', sans-serif;
+            font-size: 3.5rem; letter-spacing: -5px;
+            text-transform: uppercase;
+            mix-blend-mode: exclusion; /* Makes it change color based on background */
+            transition: transform 0.1s ease-out;
+        }
+
+        .chrono-sphere {
+            width: 150px; height: 150px;
+            border: 2px solid white; border-radius: 50%;
+            position: fixed; bottom: -75px; right: -75px;
+            cursor: pointer; pointer-events: all;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chrono-sphere:hover { transform: scale(1.5) translate(-30px, -30px); }
+
+        /* --- SYSTEM NAV --- */
+        .ghost-nav {
+            position: fixed; left: 40px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 30px; pointer-events: all;
+        }
+
+        .nav-btn {
+            background: none; border: none; color: white;
+            font-size: 0.8rem; letter-spacing: 5px; cursor: pointer;
+            writing-mode: vertical-lr; opacity: 0.3; transition: 0.3s;
+        }
+        .nav-btn:hover { opacity: 1; text-shadow: 0 0 10px white; }
+
+        /* --- THE GLITCH FILTER --- */
+        .glitch-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 999;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 2px);
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glitch-overlay"></div>
+    <canvas id="warp-canvas"></canvas>
+
+    <div class="event-horizon-core">
+        <div id="specter"></div>
+    </div>
+
+    <div class="hud-shards">
+        <div id="status" style="font-size: 10px; margin-bottom: 10px; opacity: 0.5;">WAITING_FOR_SIGNAL...</div>
+        <div class="track-shard" id="title-display">DIMENSION_0</div>
+        <div id="synesthesia" style="font-size: 10px; margin-top: 20px; color: #aaa;">COLOR_PROFILE: NULL</div>
+    </div>
+
+    <div class="ghost-nav">
+        <button class="nav-btn" onclick="prev()">PREVIOUS_TIMELINE</button>
+        <button class="nav-btn" id="play-trigger" onclick="toggle()">INITIALIZE_VOICE</button>
+        <button class="nav-btn" onclick="next()">NEXT_TIMELINE</button>
+    </div>
+
+    <div class="chrono-sphere" id="scrubber">
+        <div style="font-size: 10px;">CHRONO</div>
+    </div>
+
+    <script>
+        const playlist = [
+            { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3", mood: "Electric Violet & Static" },
+            { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3", mood: "Dull Silver & Wool" },
+            { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3", mood: "Fractured Ice & Blue" },
+            { title: "Dark Place", artist: "Juice WRLD", file: "Lost in a Dark Place(MP3_160K)_1.mp3", mood: "Deep Charcoal & Gravity" }
+        ];
+
+        let index = 0, isPlaying = false, audio = new Audio();
+        let aCtx, analyser, source;
+
+        // --- THE WARP CANVAS (Dimensional Background) ---
+        const canvas = document.getElementById('warp-canvas');
+        const ctx = canvas.getContext('2d');
+        let lines = [];
+
+        function initWarp() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            lines = [];
+            for(let i=0; i<40; i++) lines.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, len: Math.random()*100 });
+        }
+
+        // --- AUDIO ENGINE ---
+        function toggle() {
+            if(!aCtx) {
+                aCtx = new AudioContext();
+                analyser = aCtx.createAnalyser();
+                source = aCtx.createMediaElementSource(audio);
+                source.connect(analyser); analyser.connect(aCtx.destination);
+                analyser.fftSize = 128;
+                requestAnimationFrame(renderHorizon);
+            }
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-trigger').innerText = isPlaying ? 'DISSOLVE_VOICE' : 'INITIALIZE_VOICE';
+        }
+
+        function renderHorizon() {
+            const data = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(data);
+            
+            let bass = data[2];
+            let mid = data[10];
+
+            // 1. Warp the Ghost Core (Specter)
+            const specter = document.getElementById('specter');
+            specter.style.borderRadius = `${40 + bass/10}% ${60 - mid/10}% ${70 + bass/20}% ${30 + mid/5}%`;
+            specter.style.transform = `rotate(${bass/2}deg) scale(${1 + bass/500})`;
+            specter.style.borderWidth = `${1 + mid/50}px`;
+
+            // 2. Dimensional Distortion (The Shard Text)
+            const title = document.getElementById('title-display');
+            title.style.transform = `skewX(${bass/15}deg) translate(${mid/20}px, -${bass/20}px)`;
+
+            // 3. Background Warp
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.strokeStyle = 'white';
+            lines.forEach((l, i) => {
+                ctx.beginPath();
+                ctx.lineWidth = (data[i % 16] / 100);
+                ctx.moveTo(l.x, l.y);
+                ctx.lineTo(l.x + l.len + (bass), l.y);
+                ctx.stroke();
+                l.x -= (bass/10) + 1;
+                if(l.x < -200) l.x = canvas.width + 200;
+            });
+
+            requestAnimationFrame(renderHorizon);
+        }
+
+        function load(i) {
+            index = i;
+            audio.src = playlist[index].file;
+            document.getElementById('title-display').innerText = playlist[index].title;
+            document.getElementById('synesthesia').innerText = `SYNESTHESIA_PROFILE: ${playlist[index].mood}`;
+            document.getElementById('status').innerText = `STREAMS_STABLE_TRACK_${index}`;
+            if(isPlaying) audio.play();
+        }
+
+        // --- CHRONO SPHERE SCRUBBER ---
+        let isDragging = false;
+        document.getElementById('scrubber').onmousedown = () => isDragging = true;
+        window.onmouseup = () => isDragging = false;
+        window.onmousemove = (e) => {
+            if(isDragging) {
+                let rect = document.getElementById('scrubber').getBoundingClientRect();
+                let centerX = rect.left + rect.width/2;
+                let centerY = rect.top + rect.height/2;
+                let angle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+                let pct = (angle + Math.PI) / (Math.PI * 2);
+                audio.currentTime = pct * audio.duration;
+            }
+        }
+
+        function next() { load((index + 1) % playlist.length); }
+        function prev() { load((index - 1 + playlist.length) % playlist.length); }
+
+        window.onresize = initWarp;
+        initWarp();
+        load(0);
+    </script>
+</body>
+</html>

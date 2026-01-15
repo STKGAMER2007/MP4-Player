@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // V9_AURA</title>
+    <style>
+
+        :root { --aura: #ffffff; --bg: #000; }
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: var(--bg); color: white; overflow: hidden;
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        /* --- THE AMBIENT AURA --- */
+        #aura-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, #000 70%);
+            transition: background 2s ease; z-index: 1;
+        }
+
+        canvas { position: fixed; top: 0; left: 0; z-index: 2; pointer-events: none; }
+
+        /* --- FLOATING UI --- */
+        .interface {
+            position: relative; z-index: 10; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
+        }
+
+        #track-info {
+            font-size: 3rem; font-weight: 700; letter-spacing: -2px;
+            text-shadow: 0 0 20px var(--aura); opacity: 0.8;
+            transition: 0.5s;
+        }
+
+        #vibe-status {
+            font-family: 'Quicksand', sans-serif; font-size: 0.8rem;
+            letter-spacing: 10px; margin-top: 20px; opacity: 0.4;
+        }
+
+        /* --- HIDDEN DROP ZONE --- */
+        #drop-zone {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* --- MINIMAL CONTROLS --- */
+        .controls {
+            position: fixed; bottom: 50px; display: flex; gap: 50px;
+            font-size: 0.7rem; letter-spacing: 5px; opacity: 0.3; transition: 0.5s;
+            cursor: pointer; z-index: 100;
+        }
+        .controls:hover { opacity: 1; }
+        .btn:hover { color: var(--aura); text-shadow: 0 0 10px var(--aura); }
+
+        #progress-ring {
+            position: fixed; width: 300px; height: 300px;
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 50%;
+            pointer-events: all; cursor: crosshair; transition: 0.3s;
+        }
+        #progress-ring:hover { border-color: var(--aura); box-shadow: 0 0 30px rgba(255,255,255,0.1); }
+
+    </style>
+</head>
+<body id="body">
+
+    <div id="aura-bg"></div>
+    <canvas id="particle-canvas"></canvas>
+
+    <div id="drop-zone">
+        <div id="progress-ring"></div>
+        <div class="interface">
+            <div id="track-info">AURA_READY</div>
+            <div id="vibe-status">DROP_FILE_TO_BEGIN</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <span class="btn" onclick="prev()">[ PREV ]</span>
+        <span class="btn" id="play-btn" onclick="toggle()">[ INITIALIZE ]</span>
+        <span class="btn" onclick="next()">[ NEXT ]</span>
+    </div>
+
+    <input type="file" id="manual-upload" style="display:none" accept="audio/*">
+
+    <script>
+        let playlist = [
+            { title: "Strangers", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3", color: "#00f2ff" },
+            { title: "Sweater Weather", file: "Sweater Weather(MP3_160K).mp3", color: "#ffffff" },
+            { title: "Dark Place", file: "Lost in a Dark Place(MP3_160K)_1.mp3", color: "#ff003c" }
+        ];
+
+        let index = 0, isPlaying = false, audio = new Audio();
+        let aCtx, analyser, source, data;
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- PARTICLE SYSTEM ---
+        let particles = [];
+        function initParticles() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            particles = [];
+            for(let i=0; i<800; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    size: Math.random() * 1.5
+                });
+            }
+        }
+
+        // --- DRAG & DROP LOGIC ---
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.ondragover = (e) => e.preventDefault();
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        };
+
+        function handleFile(file) {
+            const url = URL.createObjectURL(file);
+            playlist.push({ title: file.name.split('.')[0], file: url, color: "#fff" });
+            load(playlist.length - 1);
+        }
+
+        // --- AUDIO ENGINE ---
+        function load(i) {
+            index = i;
+            audio.src = playlist[index].file;
+            document.getElementById('track-info').innerText = playlist[index].title.toUpperCase();
+            document.documentElement.style.setProperty('--aura', playlist[index].color || '#fff');
+            if(isPlaying) audio.play();
+        }
+
+        function toggle() {
+            if(!aCtx) {
+                aCtx = new AudioContext();
+                analyser = aCtx.createAnalyser();
+                source = aCtx.createMediaElementSource(audio);
+                source.connect(analyser); analyser.connect(aCtx.destination);
+                analyser.fftSize = 256;
+                data = new Uint8Array(analyser.frequencyBinCount);
+                render();
+            }
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').innerText = isPlaying ? '[ DISSOLVE ]' : '[ INITIALIZE ]';
+        }
+
+        function render() {
+            analyser.getByteFrequencyData(data);
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            
+            let bass = data[2];
+            let avg = data.reduce((a,b)=>a+b)/data.length;
+
+            // Aura Pulse
+            document.getElementById('aura-bg').style.background = `radial-gradient(circle at center, ${playlist[index].color}33 0%, #000 ${30 + (avg/2)}%)`;
+            document.getElementById('track-info').style.transform = `scale(${1 + (bass/1000)})`;
+            document.getElementById('vibe-status').innerText = `INTENSITY: ${Math.floor(avg)} // FREQ: ${Math.floor(bass)}Hz`;
+
+            particles.forEach((p, i) => {
+                p.x += p.vx * (avg/20 + 1);
+                p.y += p.vy * (avg/20 + 1);
+
+                if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                ctx.fillStyle = playlist[index].color || '#fff';
+                ctx.globalAlpha = p.size;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * (bass/50), 0, Math.PI*2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(render);
+        }
+
+        // --- PROGRESS RING LOGIC ---
+        document.getElementById('progress-ring').onclick = (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - (rect.left + rect.width / 2);
+            const y = e.clientY - (rect.top + rect.height / 2);
+            const angle = Math.atan2(y, x) + Math.PI;
+            const pct = angle / (Math.PI * 2);
+            audio.currentTime = pct * audio.duration;
+        };
+
+        function next() { load((index + 1) % playlist.length); }
+        function prev() { load((index - 1 + playlist.length) % playlist.length); }
+
+        window.onresize = initParticles;
+        initParticles();
+        load(0);
+    </script>
+</body>
+</html>

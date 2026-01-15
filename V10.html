@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEO-SYSTEM // V10_HYBRID_OMNI</title>
+    <style>
+        :root { --accent: #fff; --bg: #000; }
+
+        body {
+            margin: 0; background: var(--bg); color: white;
+            font-family: 'Space Mono', monospace; height: 100vh; overflow: hidden;
+            perspective: 1000px; touch-action: none;
+        }
+
+        canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+
+        /* --- THE HUD --- */
+        .omni-hud {
+            position: absolute; top: 45%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10; text-align: center; pointer-events: none;
+            width: 90%;
+        }
+
+        #track-name {
+            font-family: 'Syncopate', sans-serif; font-size: clamp(2rem, 10vw, 5.5rem);
+            letter-spacing: -5px; text-transform: uppercase;
+            mix-blend-mode: difference; transition: 0.1s;
+        }
+
+        /* --- MOBILE FRIENDLY CONTROLS --- */
+        .shards {
+            position: fixed; bottom: 40px; width: 100%;
+            display: flex; justify-content: center; align-items: center;
+            gap: 30px; z-index: 100;
+        }
+
+        .shard { 
+            cursor: pointer; opacity: 0.4; transition: 0.3s; 
+            padding: 15px; background: rgba(255,255,255,0.05);
+            border-radius: 5px; font-size: 10px;
+        }
+        .shard:active { background: var(--accent); color: black; opacity: 1; }
+
+        /* MOBILE UPLOAD BUTTON */
+        #mobile-up {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            width: 45px; height: 45px; border: 1px solid white;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; background: rgba(0,0,0,0.5);
+        }
+
+        /* ORBITAL RING */
+        #orbit {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: min(80vw, 500px); height: min(80vw, 500px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50%;
+            z-index: 5; pointer-events: all;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(3px, -3px); }
+            50% { transform: translate(-3px, 3px); }
+            100% { transform: translate(0); }
+        }
+        .glitch-active { animation: glitch 0.1s infinite; filter: hue-rotate(90deg); }
+    </style>
+</head>
+<body ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+
+    <canvas id="stars"></canvas>
+    <div id="orbit"></div>
+
+    <div id="mobile-up" onclick="document.getElementById('file-input').click()">+</div>
+    <input type="file" id="file-input" hidden accept="audio/*" onchange="handleFile(event)">
+
+    <div class="omni-hud">
+        <div id="track-name">READY</div>
+        <div id="status" style="font-size: 10px; opacity: 0.5; margin-top: 10px;">V10_HYBRID_OMNI</div>
+    </div>
+
+    <div class="shards">
+        <div class="shard" onclick="prev()">[ PREV ]</div>
+        <div class="shard" id="play-btn" onclick="initOrToggle()">[ INITIALIZE ]</div>
+        <div class="shard" onclick="next()">[ NEXT ]</div>
+    </div>
+
+    <script>
+        let playlist = [{title: "System Ready", file: ""}];
+        let index = 0, isPlaying = false, audio = new Audio();
+        let aCtx, analyser, source, data;
+        let mouseX = 0, mouseY = 0;
+
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function initStars() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            stars = [];
+            let count = window.innerWidth < 600 ? 500 : 1200; // Optimization
+            for(let i=0; i<count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width - canvas.width/2,
+                    y: Math.random() * canvas.height - canvas.height/2,
+                    z: Math.random() * canvas.width
+                });
+            }
+        }
+
+        function initOrToggle() {
+            if(!aCtx) {
+                aCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = aCtx.createAnalyser();
+                source = aCtx.createMediaElementSource(audio);
+                source.connect(analyser); analyser.connect(aCtx.destination);
+                analyser.fftSize = 128;
+                data = new Uint8Array(analyser.frequencyBinCount);
+                loop();
+            }
+            if(isPlaying) audio.pause(); else audio.play();
+            isPlaying = !isPlaying;
+            document.getElementById('play-btn').innerText = isPlaying ? '[ DISSOLVE ]' : '[ INITIALIZE ]';
+        }
+
+        function loop() {
+            analyser.getByteFrequencyData(data);
+            let bass = data[2];
+            let avg = data.reduce((a,b)=>a+b)/data.length;
+
+            ctx.fillStyle = "black";
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+
+            stars.forEach(s => {
+                s.z -= (avg / 15) + 2;
+                if(s.z <= 0) s.z = canvas.width;
+                let sx = (s.x / s.z) * canvas.width + canvas.width/2 + (mouseX * 0.05);
+                let sy = (s.y / s.z) * canvas.width + canvas.height/2 + (mouseY * 0.05);
+                ctx.fillStyle = `white`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, (1 - s.z/canvas.width) * 2.5, 0, Math.PI*2);
+                ctx.fill();
+            });
+
+            const name = document.getElementById('track-name');
+            name.style.transform = `scale(${1 + bass/800})`;
+            if(bass > 220) document.body.classList.add('glitch-active');
+            else document.body.classList.remove('glitch-active');
+
+            requestAnimationFrame(loop);
+        }
+
+        // --- INPUT HANDLING ---
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if(file) {
+                playlist.push({title: file.name.split('.')[0], file: URL.createObjectURL(file)});
+                load(playlist.length - 1);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if(file) {
+                playlist.push({title: file.name.split('.')[0], file: URL.createObjectURL(file)});
+                load(playlist.length - 1);
+            }
+        }
+
+        // --- SEEKING ---
+        document.getElementById('orbit').onclick = (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - (rect.left + rect.width / 2);
+            const y = (e.clientY || e.touches[0].clientY) - (rect.top + rect.height / 2);
+            const angle = Math.atan2(y, x) + Math.PI;
+            audio.currentTime = (angle / (Math.PI * 2)) * audio.duration;
+        };
+
+        function load(i) {
+            index = i;
+            audio.src = playlist[index].file;
+            document.getElementById('track-name').innerText = playlist[index].title;
+            if(isPlaying) audio.play();
+        }
+
+        window.onmousemove = (e) => { mouseX = e.clientX - window.innerWidth/2; mouseY = e.clientY - window.innerHeight/2; };
+        window.onresize = initStars;
+        initStars();
+        function next() { load((index + 1) % playlist.length); }
+        function prev() { load((index - 1 + playlist.length) % playlist.length); }
+    </script>
+</body>
+</html>

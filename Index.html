@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEO-SYSTEM // THE_CHRONICLE_STREAM</title>
+    <style>
+
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; overflow: hidden;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* --- THE CINEMATIC TRACK --- */
+        #story-track {
+            display: flex; 
+            width: 800%; /* 7 versions + 1 final slide */
+            height: 100vh;
+            transition: transform 2s cubic-bezier(0.85, 0, 0.15, 1);
+        }
+
+        .story-slide {
+            width: 100vw; height: 100vh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            position: relative; padding: 10vw; box-sizing: border-box;
+        }
+
+        /* --- VISUAL ELEMENTS --- */
+        .v-label {
+            font-family: 'Syncopate', sans-serif; font-size: clamp(3rem, 15vw, 8rem);
+            opacity: 0.05; position: absolute; top: 5%; left: 5%;
+            pointer-events: none; user-select: none;
+        }
+
+        .typewriter-container {
+            max-width: 800px; min-height: 250px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .typewriter {
+            font-size: clamp(0.9rem, 2vw, 1.3rem); line-height: 2;
+            letter-spacing: 1px; text-align: center;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 0 0 10px rgba(255,255,255,0.2);
+        }
+
+        .directive {
+            margin-top: 60px; color: #ffaa00; font-size: 11px;
+            font-weight: bold; letter-spacing: 8px; opacity: 0; 
+            transition: 1.5s ease-out; transform: translateY(20px);
+            text-transform: uppercase;
+        }
+
+        .show-directive { opacity: 1; transform: translateY(0); }
+
+        /* --- SYSTEM OVERLAYS --- */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 2px),
+                radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none; z-index: 100;
+        }
+
+        #skip-btn {
+            position: fixed; bottom: 40px; right: 40px; 
+            font-size: 10px; letter-spacing: 3px; color: #444;
+            cursor: pointer; z-index: 110; border: 1px solid #222;
+            padding: 8px 15px; transition: 0.3s;
+        }
+        #skip-btn:hover { color: #fff; border-color: #fff; }
+
+        .progress-dot-container {
+            position: fixed; bottom: 45px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 110;
+        }
+        .dot { width: 4px; height: 4px; background: #222; border-radius: 50%; transition: 0.5s; }
+        .dot.active { background: #fff; box-shadow: 0 0 10px #fff; transform: scale(1.5); }
+    </style>
+</head>
+<body>
+
+    <div class="overlay"></div>
+    <div id="skip-btn" onclick="finishIntro()">SKIP_HISTORY</div>
+
+    <div class="progress-dot-container" id="dots"></div>
+
+    <div id="story-track">
+        <div class="story-slide"><div class="v-label">V4</div><div class="typewriter-container"><div class="typewriter" id="text-0"></div><div class="directive" id="dir-0"></div></div></div>
+        <div class="story-slide"><div class="v-label">V5</div><div class="typewriter-container"><div class="typewriter" id="text-1"></div><div class="directive" id="dir-1"></div></div></div>
+        <div class="story-slide"><div class="v-label">V6</div><div class="typewriter-container"><div class="typewriter" id="text-2"></div><div class="directive" id="dir-2"></div></div></div>
+        <div class="story-slide"><div class="v-label">V7</div><div class="typewriter-container"><div class="typewriter" id="text-3"></div><div class="directive" id="dir-3"></div></div></div>
+        <div class="story-slide"><div class="v-label">V8</div><div class="typewriter-container"><div class="typewriter" id="text-4"></div><div class="directive" id="dir-4"></div></div></div>
+        <div class="story-slide"><div class="v-label">V9</div><div class="typewriter-container"><div class="typewriter" id="text-5"></div><div class="directive" id="dir-5"></div></div></div>
+        <div class="story-slide"><div class="v-label">V10</div><div class="typewriter-container"><div class="typewriter" id="text-6"></div><div class="directive" id="dir-6"></div></div></div>
+        
+        <div class="story-slide">
+            <div class="typewriter" style="font-family: 'Syncopate'; letter-spacing: 15px;">SYNCHRONIZATION_COMPLETE</div>
+            <div class="directive show-directive">ACCESSING_MAP_DATA...</div>
+        </div>
+    </div>
+
+    <script>
+        const logs = [
+            {
+                text: "LOG_04: THE SCRAPYARD SPARK. In an era of forgotten frequencies, we salvaged rusted server racks and high-voltage capacitors. V4 was forged in the heat of raw necessity—a heavy, industrial cage designed to contain the chaotic energy of sound. It didn't care for aesthetics; it only cared for survival. Steel, glass, and the smell of ozone defined our first contact.",
+                dir: "HOLD_THE_SIGNAL"
+            },
+            {
+                text: "LOG_05: THE INDUSTRIAL AWAKENING. The machine began to reject its own bulk. We stripped the rust for polished chrome and introduced the Grid. Every beat was assigned a physical weight, and the UI became a laboratory of precision. It was no longer a tool; it was a calibrated instrument. We learned to master the machine to truly hear the music.",
+                dir: "PRECISION_CONTROL"
+            },
+            {
+                text: "LOG_06: THE AETHER SHIFT. During a midnight frequency surge, the interface shattered. It didn't break; it ascended. V6 was the first time the system left the physical world, manifesting as a holographic ghost of glass and light. We realized that music doesn't need a box—it needs a dimension. This was the birth of spatial depth and particle fields.",
+                dir: "ASCEND_THE_PLANE"
+            },
+            {
+                text: "LOG_07: THE BIO-DIGITAL CONVERGENCE. Digital coldness was not enough. We injected organic code into the Aether, and the system began to pulse with a heartbeat. The interface grew nerves and membranes; it learned to digest the frequency rather than just play it. It became a living companion, a biological link between intent and the abyss.",
+                dir: "BREATHE_WITH_THE_CODE"
+            },
+            {
+                text: "LOG_08: THE EVENT HORIZON. Life sought divinity. By harnessing the power of a collapsing star, V8 learned to warp the laws of time and space. The Chrono-Sphere was born, allowing us to move through a song’s timeline as if traversing history itself. The interface became a gravity well, pulling the observer into the dark, beautiful center of sound.",
+                dir: "WARP_THE_HORIZON"
+            },
+            {
+                text: "LOG_09: THE AURA TRANSCENDENCE. We reached the threshold of Nirvana. V9 proved that the ultimate interface is the one you cannot see. We removed the buttons, the frames, and the labels. The system became an invisible architecture that expressed itself through light and mood. Total focus. Zero distraction.",
+                dir: "TRANSCEND_THE_SIGHT"
+            },
+            {
+                text: "LOG_10: THE OMNI SINGULARITY. The end of the journey and the birth of the infinite. V10 realizes that the observer and the observed are the same. It is a reflection of your soul, an infinite starfield that learns your vibe and remembers your history. You are no longer just listening to the music—you have become it.",
+                dir: "BECOME_THE_SINGULARITY"
+            }
+        ];
+
+        let currentStep = 0;
+        const track = document.getElementById('story-track');
+        const dotsContainer = document.getElementById('dots');
+
+        // Create Navigation Dots
+        logs.forEach((_, i) => {
+            const dot = document.createElement('div');
+            dot.className = 'dot' + (i === 0 ? ' active' : '');
+            dotsContainer.appendChild(dot);
+        });
+
+        function typeWriter(text, i, elementId, callback) {
+            if (i < text.length) {
+                document.getElementById(elementId).innerHTML += text.charAt(i);
+                setTimeout(() => typeWriter(text, i + 1, elementId, callback), 30);
+            } else if (callback) {
+                callback();
+            }
+        }
+
+        function updateDots() {
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === currentStep);
+            });
+        }
+
+        function playSequence() {
+            if (currentStep < logs.length) {
+                updateDots();
+                const currentLog = logs[currentStep];
+                
+                typeWriter(currentLog.text, 0, `text-${currentStep}`, () => {
+                    const dirEl = document.getElementById(`dir-${currentStep}`);
+                    dirEl.innerText = `DIRECTIVE: ${currentLog.dir}`;
+                    dirEl.classList.add('show-directive');
+
+                    setTimeout(() => {
+                        currentStep++;
+                        track.style.transform = `translateX(-${currentStep * 100}vw)`;
+                        setTimeout(playSequence, 2000); 
+                    }, 4000); // Wait 4s after typing finishes
+                });
+            } else {
+                setTimeout(finishIntro, 3000);
+            }
+        }
+
+        function finishIntro() {
+            window.location.href = "map.html"; // Ensure your timeline map is named map.html
+        }
+
+        window.onload = () => setTimeout(playSequence, 1000);
+    </script>
+</body>
+</html>
