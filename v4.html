@@ -2,142 +2,124 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEO-SYSTEM // V4_EVOLVE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEO-SYSTEM // V4_MOBILE_EVOLVE</title>
     <style>
-
-        :root {
-            --neon: #00f2ff;
-            --accent: #ff007b;
-            --bg: #050505;
-        }
+        :root { --neon: #00f2ff; --accent: #ff007b; --bg: #050505; }
 
         body {
             margin: 0; background: var(--bg); color: white;
             font-family: 'Orbitron', sans-serif; height: 100vh;
-            display: grid; grid-template-columns: 300px 1fr; overflow: hidden;
+            display: flex; overflow: hidden; /* Changed from Grid to Flex */
         }
 
-        /* --- LEFT PANEL: UPLOAD & DATABASE --- */
+        /* --- MOBILE MENU OVERLAY --- */
         .system-panel {
-            background: rgba(10,10,10,0.8); border-right: 2px solid var(--neon);
-            padding: 20px; display: flex; flex-direction: column; gap: 20px;
-            backdrop-filter: blur(10px); z-index: 10;
+            background: rgba(10,10,10,0.95); border-right: 2px solid var(--neon);
+            padding: 20px; width: 300px; height: 100vh;
+            display: flex; flex-direction: column; gap: 20px;
+            backdrop-filter: blur(15px); z-index: 200;
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        .upload-zone {
-            border: 2px dashed var(--neon); padding: 20px; text-align: center;
-            font-size: 10px; color: var(--neon); cursor: pointer; transition: 0.3s;
+        @media (max-width: 800px) {
+            .system-panel { position: absolute; transform: translateX(-100%); width: 80%; }
+            .system-panel.open { transform: translateX(0); }
         }
-        .upload-zone:hover { background: rgba(0, 242, 255, 0.1); }
 
-        .db-list { flex: 1; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 11px; }
-        .db-item { 
-            padding: 10px; border-bottom: 1px solid rgba(0,242,255,0.1); 
-            cursor: pointer; transition: 0.2s;
+        .menu-trigger {
+            position: fixed; top: 20px; left: 20px; z-index: 300;
+            background: black; border: 1px solid var(--neon); color: var(--neon);
+            padding: 8px 12px; font-size: 10px; display: none;
         }
-        .db-item:hover { color: var(--neon); background: rgba(0,242,255,0.05); }
-        .db-item.active { border-left: 4px solid var(--neon); background: rgba(0,242,255,0.1); }
+        @media (max-width: 800px) { .menu-trigger { display: block; } }
 
-        /* --- MAIN CORE DESIGN --- */
+        /* --- MAIN CORE --- */
         .main-stage {
-            position: relative; display: flex; justify-content: center; align-items: center;
+            flex: 1; position: relative; display: flex; 
+            justify-content: center; align-items: center;
             background: radial-gradient(circle, #111 0%, #000 100%);
         }
 
         #targeting-reticle {
-            position: absolute; width: 400px; height: 400px;
+            position: absolute; width: min(80vw, 400px); height: min(80vw, 400px);
             border: 1px solid rgba(0, 242, 255, 0.2); border-radius: 50%;
-            pointer-events: none; transition: 0.1s linear;
+            pointer-events: none;
         }
 
         .core-hex {
-            width: 220px; height: 220px;
+            width: 180px; height: 180px;
             background: rgba(0,0,0,0.9); border: 2px solid var(--neon);
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 5; box-shadow: 0 0 50px var(--neon);
+            z-index: 5; box-shadow: 0 0 30px var(--neon);
         }
 
         /* --- BOTTOM CONTROLS --- */
         .control-dock {
-            position: absolute; bottom: 30px; width: 600px;
-            display: flex; align-items: center; gap: 20px;
-            padding: 15px 30px; background: rgba(0,0,0,0.8);
-            border: 1px solid var(--neon); clip-path: polygon(5% 0, 95% 0, 100% 50%, 95% 100%, 5% 100%, 0 50%);
+            position: absolute; bottom: 20px; width: 90%; max-width: 600px;
+            display: flex; align-items: center; gap: 15px;
+            padding: 10px 20px; background: rgba(0,0,0,0.8);
+            border: 1px solid var(--neon);
+            clip-path: polygon(2% 0, 98% 0, 100% 50%, 98% 100%, 2% 100%, 0 50%);
         }
 
-        .btn-v4 { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: white; }
-        .btn-v4:hover { transform: scale(1.2); filter: drop-shadow(0 0 5px var(--neon)); }
-
-        .progress-rail { flex: 1; height: 2px; background: #222; position: relative; cursor: pointer; }
-        .progress-fill { height: 100%; width: 0%; background: var(--neon); box-shadow: 0 0 10px var(--neon); }
+        .btn-v4 { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: white; }
+        .progress-rail { flex: 1; height: 2px; background: #222; cursor: pointer; }
+        .progress-fill { height: 100%; width: 0%; background: var(--neon); }
 
         canvas#viz { position: absolute; width: 100%; height: 100%; pointer-events: none; }
+        .db-list { flex: 1; overflow-y: auto; font-family: 'JetBrains Mono'; font-size: 11px; }
+        .db-item { padding: 10px; border-bottom: 1px solid rgba(0,242,255,0.1); cursor: pointer; }
+        .db-item.active { border-left: 4px solid var(--neon); background: rgba(0,242,255,0.1); }
     </style>
 </head>
 <body>
 
+    <button class="menu-trigger" onclick="document.querySelector('.system-panel').classList.toggle('open')">MENU_LINK</button>
+
     <div class="system-panel">
         <h2 style="font-size: 12px; letter-spacing: 3px; color: var(--accent);">[SYSTEM_ARCHITECT]</h2>
-        
-        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
-            📥 DROP_NEW_PACKET<br>OR CLICK TO INGEST
-            <input type="file" id="file-input" hidden accept="audio/*">
-        </div>
-
-        <div class="db-list" id="db-list">
-            </div>
-        
-        <div style="font-size: 9px; opacity: 0.5;">LOG: <span id="sys-log">IDLE</span></div>
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">📥 INGEST_DATA <input type="file" id="file-input" hidden accept="audio/*"></div>
+        <div class="db-list" id="db-list"></div>
     </div>
 
     <div class="main-stage">
         <canvas id="viz"></canvas>
         <div id="targeting-reticle"></div>
-        
         <div class="core-hex">
-            <div id="emoji-display" style="font-size: 4rem;">🧬</div>
-            <div id="track-id" style="font-size: 10px; margin-top: 10px; color: var(--neon);">ID_NULL</div>
+            <div id="emoji-display" style="font-size: 3rem;">🧬</div>
+            <div id="track-id" style="font-size: 9px; margin-top: 5px; color: var(--neon);">ID_NULL</div>
         </div>
-
         <div class="control-dock">
             <button class="btn-v4" onclick="prev()">⏮️</button>
             <button class="btn-v4" id="play-trigger" onclick="toggle()">▶️</button>
             <button class="btn-v4" onclick="next()">⏭️</button>
-            
-            <div class="progress-rail" id="scrubber">
+            <div class="progress-rail" id="scrubber" onclick="seek(event)">
                 <div class="progress-fill" id="bar"></div>
             </div>
-
-            <div style="font-size: 10px; min-width: 50px;" id="time">0:00</div>
+            <div style="font-size: 9px; min-width: 40px;" id="time">0:00</div>
         </div>
     </div>
 
     <script>
-        // Start with your current list
         let playlist = [
-            { title: "Strangers", artist: "Kenya Grace", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3", genre: "🌌" },
-            { title: "Sweater Weather", artist: "The Neighbourhood", file: "Sweater Weather(MP3_160K).mp3", genre: "🧥" },
-            { title: "A COLD PLAY", artist: "The Kid LAROI", file: "The Kid LAROI - A COLD PLAY (Official Audio)(MP3_160K).mp3", genre: "❄️" }
+            { title: "Strangers", file: "Kenya Grace - Strangers (Official Lyric Video)(MP3_160K).mp3", genre: "🌌" },
+            { title: "Sweater Weather", file: "Sweater Weather(MP3_160K).mp3", genre: "🧥" }
         ];
-
         let index = 0, isPlaying = false, audio = new Audio();
         let aCtx, analyser, source;
 
-        // --- THE "AUTO-EVOLVE" INGESTION ENGINE ---
-        document.getElementById('file-input').onchange = function(e) {
+        function seek(e) {
+            const rect = document.getElementById('scrubber').getBoundingClientRect();
+            const p = (e.clientX - rect.left) / rect.width;
+            audio.currentTime = p * audio.duration;
+        }
+
+        document.getElementById('file-input').onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
-                const url = URL.createObjectURL(file);
-                const newSong = {
-                    title: file.name.replace(/\.[^/.]+$/, "").substring(0, 15),
-                    artist: "UNKNOWN_HOST",
-                    file: url,
-                    genre: "⚡"
-                };
-                playlist.push(newSong);
-                document.getElementById('sys-log').innerText = `PACKET_${playlist.length}_INGESTED`;
+                playlist.push({ title: file.name.substring(0, 15), file: URL.createObjectURL(file), genre: "⚡" });
                 renderDB();
             }
         };
@@ -148,45 +130,32 @@
             playlist.forEach((s, i) => {
                 const item = document.createElement('div');
                 item.className = `db-item ${i === index ? 'active' : ''}`;
-                item.innerHTML = `> [${i < 10 ? '0'+i : i}] ${s.title}`;
-                item.onclick = () => load(i);
+                item.innerHTML = `> [0${i}] ${s.title}`;
+                item.onclick = () => { load(i); if(window.innerWidth < 800) document.querySelector('.system-panel').classList.remove('open'); };
                 list.appendChild(item);
             });
         }
 
         function load(idx) {
             index = idx;
-            const s = playlist[index];
-            audio.src = s.file;
-            document.getElementById('emoji-display').innerText = s.genre;
-            document.getElementById('track-id').innerText = `CORE_ID_${index}`;
+            audio.src = playlist[index].file;
+            document.getElementById('emoji-display').innerText = playlist[index].genre;
             renderDB();
             if(isPlaying) audio.play();
         }
 
-        // --- THE "TARGETING" MOUSE LOGIC ---
-        document.addEventListener('mousemove', (e) => {
-            const reticle = document.getElementById('targeting-reticle');
-            const x = (e.clientX - window.innerWidth / 2) * 0.05;
-            const y = (e.clientY - window.innerHeight / 2) * 0.05;
-            reticle.style.transform = `translate(${x}px, ${y}px)`;
-        });
-
-        // --- AUDIO ENGINE ---
         function toggle() {
-            if(!aCtx) initAudio();
-            if(isPlaying) audio.pause(); else audio.play();
+            if(!aCtx) {
+                aCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = aCtx.createAnalyser();
+                source = aCtx.createMediaElementSource(audio);
+                source.connect(analyser); analyser.connect(aCtx.destination);
+                analyser.fftSize = 128;
+                draw();
+            }
+            isPlaying ? audio.pause() : audio.play();
             isPlaying = !isPlaying;
             document.getElementById('play-trigger').innerText = isPlaying ? '⏸️' : '▶️';
-        }
-
-        function initAudio() {
-            aCtx = new AudioContext();
-            analyser = aCtx.createAnalyser();
-            source = aCtx.createMediaElementSource(audio);
-            source.connect(analyser); analyser.connect(aCtx.destination);
-            analyser.fftSize = 256;
-            draw();
         }
 
         function draw() {
@@ -194,19 +163,14 @@
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth; canvas.height = window.innerHeight;
             const data = new Uint8Array(analyser.frequencyBinCount);
-
             function frame() {
                 requestAnimationFrame(frame);
                 analyser.getByteFrequencyData(data);
                 ctx.clearRect(0,0,canvas.width,canvas.height);
-                
-                // Vertical Laser Visualizer
                 data.forEach((v, i) => {
-                    if (i % 4 === 0) {
-                        const h = v * 1.5;
-                        ctx.fillStyle = `rgba(0, 242, 255, ${v/255})`;
-                        ctx.fillRect(i * 12, canvas.height - h, 2, h);
-                    }
+                    const h = v * 1.2;
+                    ctx.fillStyle = `rgba(0, 242, 255, ${v/255})`;
+                    ctx.fillRect(i * (canvas.width/64), canvas.height - h, (canvas.width/64)-2, h);
                 });
             }
             frame();
@@ -219,9 +183,7 @@
 
         function next() { load((index + 1) % playlist.length); }
         function prev() { load((index - 1 + playlist.length) % playlist.length); }
-
-        renderDB();
-        load(0);
+        renderDB(); load(0);
     </script>
 </body>
 </html>
